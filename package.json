@@ -1,0 +1,41 @@
+{
+  "name": "for-samee-my-love",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:setup": "node scripts/migrate.mjs && node scripts/seed-admin.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource/cormorant-garamond": "5.3.0",
+    "@fontsource/great-vibes": "5.3.0",
+    "@fontsource/playfair-display": "5.3.0",
+    "bcryptjs": "3.0.3",
+    "framer-motion": "12.43.0",
+    "jose": "6.2.17",
+    "lucide-react": "0.577.0",
+    "next": "15.5.29",
+    "pdf-lib": "1.17.1",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.5",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "4.3.5",
+    "typescript": "5.9.3"
+  },
+  "optionalDependencies": {
+    "@electric-sql/pglite": "0.5.16"
+  }
+}
