@@ -90,19 +90,85 @@ async function runMigrations(db: Queryable & { exec: (sql: string) => Promise<vo
   }
 }
 
-async function createPostgresBackend(): Promise<Backend> {
-  const pool =
-    globalForDb.__fsd_pg_pool ??
-    new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: Number(process.env.PG_POOL_MAX ?? 5),
-      ssl:
-        process.env.DATABASE_SSL === "false"
-          ? undefined
-          : { rejectUnauthorized: false },
-    });
-  globalForDb.__fsd_pg_pool = pool;
+/**
+ * Supabase routes pooled connections through regional hosts whose exact name
+ * (`aws-0-…`, `aws-1-…`, `aws-1-ap-southeast-1.pooler.supabase.com`, …) has
+ * changed several times. Pasting a slightly stale hostname into a dashboard
+ * should not take the whole site offline, so we try the configured string
+ * first and then the known pooler host shapes for the same project.
+ */
+export function connectionCandidates(configured = process.env.DATABASE_URL): string[] {
+  if (!configured) return [];
+  const candidates = [configured];
+
+  const withHost = (url: URL, hostname: string, port?: string) => {
+    const copy = new URL(url.toString());
+    copy.hostname = hostname;
+    if (port) copy.port = port;
+    return copy.toString();
+  };
+
+  try {
+    const url = new URL(configured);
+    const host = url.hostname;
+    const projectRef = url.username.includes(".") ? url.username.split(".").pop() : undefined;
+
+    if (/\.pooler\.supabase\.com$/.test(host)) {
+      // Strip any existing aws-N- prefix to recover the bare region name.
+      const region = host.replace(/\.pooler\.supabase\.com$/, "").replace(/^aws-\d+-/, "");
+      for (const prefix of ["aws-0-", "aws-1-", "aws-2-"]) {
+        const alternative = withHost(url, `${prefix}${region}.pooler.supabase.com`);
+        if (!candidates.includes(alternative)) candidates.push(alternative);
+      }
+    } else if (projectRef && /^db\..*\.supabase\.co$/.test(host)) {
+      // Direct connection pasted instead of the pooler: port 5432 also works.
+      const alternative = withHost(url, host, "5432");
+      if (!candidates.includes(alternative)) candidates.push(alternative);
+    }
+  } catch {
+    // A malformed URL will simply fail on the configured value below.
+  }
+
+  return [...new Set(candidates)];
+}
+
+function makePool(connectionString: string, timeoutMs?: number): Pool {
+  const pool = new Pool({
+    connectionString,
+    max: Number(process.env.PG_POOL_MAX ?? 5),
+    ...(timeoutMs ? { connectionTimeoutMillis: timeoutMs } : {}),
+    ssl:
+      process.env.DATABASE_SSL === "false"
+        ? undefined
+        : { rejectUnauthorized: false },
+  });
   pool.on("error", (error) => console.error("[db] pool error", error.message));
+  return pool;
+}
+
+async function connectWithFallback(): Promise<Pool> {
+  const candidates = connectionCandidates();
+  if (candidates.length === 0) throw new Error("DATABASE_URL is empty");
+
+  let lastError: unknown;
+  for (const [index, candidate] of candidates.entries()) {
+    const pool = makePool(candidate, 8_000);
+    try {
+      await pool.query("select 1");
+      const label = new URL(candidate).hostname;
+      console.log(`[db] connected via ${label}${index > 0 ? " (fallback host)" : ""}`);
+      return pool;
+    } catch (error) {
+      lastError = error;
+      await pool.end().catch(() => {});
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Unable to reach the database");
+}
+
+async function createPostgresBackend(): Promise<Backend> {
+  const pool = globalForDb.__fsd_pg_pool ?? (await connectWithFallback());
+  globalForDb.__fsd_pg_pool = pool;
 
   const run = async <T>(text: string, params?: unknown[]) => {
     const result = await pool.query(text, params as unknown[] | undefined);
@@ -113,7 +179,6 @@ async function createPostgresBackend(): Promise<Backend> {
     await pool.query(sql);
   };
 
-  await run("select 1");
   await runMigrations({ query: run, exec });
   return { mode: "postgres", query: run, exec };
 }

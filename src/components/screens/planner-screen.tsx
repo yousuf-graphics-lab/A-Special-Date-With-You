@@ -432,7 +432,7 @@ export function PlannerScreen({
                         : "bg-gradient-to-br from-blush/80 to-gold/25 text-burgundy",
                     ].join(" ")}
                   >
-                    <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
                   </span>
                   <span className="text-[0.9rem] font-medium leading-tight text-ink">{option.label}</span>
                   <span className="text-[0.74rem] leading-snug text-muted">{option.blurb}</span>
