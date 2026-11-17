@@ -40,7 +40,12 @@ export const isProduction = () => process.env.NODE_ENV === "production";
  * Samiya's answers. Without DATABASE_URL we surface a clear message instead.
  */
 export function databaseConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL) || !isProduction();
+  if (process.env.DATABASE_URL) return true;
+  if (!isProduction()) return true;
+  // `next start` on a laptop runs the production build too, so local smoke
+  // tests of the built artefact need an explicit opt-in. Never set this on a
+  // server: the embedded database lives on the local filesystem.
+  return process.env.ALLOW_EMBEDDED_DATABASE === "true";
 }
 
 export const databaseMode = (): "postgres" | "pglite" =>
