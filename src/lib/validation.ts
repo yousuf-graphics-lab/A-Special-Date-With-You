@@ -3,6 +3,7 @@ import {
   ACTIVITY_OPTIONS,
   PLACE_OPTIONS,
   TIME_SLOTS,
+  formatTimeLabel,
   isIsoDate,
   timeToMinutes,
   todayInDhaka,
@@ -124,17 +125,26 @@ export const responseUpdateSchema = z.object({
   markReviewed: z.boolean().optional(),
 });
 
-/** Turn a validated payload into the columns the table expects. */
+/**
+ * Turn a validated payload into the columns the table expects.
+ * Free-text extras are only stored for the option they belong to, so a stray
+ * value can never show up next to the wrong choice.
+ */
 export function toPlanColumns(payload: PlanPayload) {
   const isSlot = payload.timeMode === "slot";
+  const customPlace = payload.placeId === "surprise" ? payload.placeCustom?.trim() : "";
+  const customActivity = payload.activities.includes("other")
+    ? payload.activityCustom?.trim()
+    : "";
+
   return {
     selectedDate: payload.selectedDate,
-    selectedTime: isSlot ? payload.timeSlot : payload.customTime.trim(),
+    selectedTime: isSlot ? payload.timeSlot : formatTimeLabel(payload.customTime),
     timeIsCustom: !isSlot,
     locationLabel: payload.placeId,
-    locationCustom: payload.placeCustom?.trim() ? payload.placeCustom.trim() : null,
+    locationCustom: customPlace || null,
     activities: payload.activities,
-    activityCustom: payload.activityCustom?.trim() ? payload.activityCustom.trim() : null,
+    activityCustom: customActivity || null,
     message: payload.message?.trim() ? payload.message.trim() : null,
   };
 }

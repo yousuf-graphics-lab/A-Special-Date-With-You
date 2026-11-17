@@ -5,12 +5,21 @@ import { SignOutButton } from "@/components/admin/sign-out-button";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Every dashboard page lives inside this layout, so authorisation is checked
+ * once, on the server, before any of them render. /admin/login sits outside
+ * this route group on purpose.
+ */
+
 export const metadata: Metadata = {
   title: "Dashboard",
   robots: { index: false, follow: false, nocache: true, noarchive: true },
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Server-side authorisation: a signed-in session row must exist. Anything
+  // else goes back to the login screen — including a database that is not
+  // reachable, so nothing private is ever rendered unauthenticated.
   const admin = await currentAdmin().catch(() => null);
   if (!admin) redirect("/admin/login");
 

@@ -89,10 +89,13 @@ export function PlannerScreen({
   const [serverError, setServerError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [saved, setSaved] = useState<PlanView | null>(null);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
 
   const update = <K extends keyof PlanFormState>(key: K, next: PlanFormState[K]) => {
     onChange({ ...value, [key]: next });
     if (errors[key]) setErrors(({ [key]: _removed, ...rest }) => rest);
+    // Coming back to change something after saving: let her edit and save again.
+    if (saved) setSaved(null);
   };
 
   const toggleActivity = (id: string) => {
@@ -146,7 +149,7 @@ export function PlannerScreen({
           placeId: value.placeId,
           placeCustom: value.placeCustom,
           activities: value.activities,
-          activityCustom: value.activityCustom,
+          activityCustom: value.activities.includes("other") ? value.activityCustom : "",
           message: value.message,
         }),
       });
@@ -166,6 +169,7 @@ export function PlannerScreen({
       }
 
       setSaved(data.plan);
+      setSavedNote(data.message ?? null);
       setReviewing(false);
       window.setTimeout(() => onSaved(data.plan!), reduced ? 200 : 1400);
     } catch {
@@ -192,7 +196,8 @@ export function PlannerScreen({
             <Check className="h-7 w-7" strokeWidth={2.2} aria-hidden="true" />
           </motion.span>
           <h2 className="font-display text-3xl text-burgundy">{PLANNER.success}</h2>
-          <p className="mt-2 text-sm text-muted">There is one more little thing waiting for you…</p>
+          {savedNote && <p className="mt-2 text-sm text-burgundy/80">{savedNote}</p>}
+          <p className="mt-1 text-sm text-muted">There is one more little thing waiting for you…</p>
         </motion.div>
       </section>
     );
@@ -510,6 +515,13 @@ export function PlannerScreen({
           />
 
           <div className="paper rounded-2xl p-5 sm:p-7">
+            {!pending && (
+              <p className="mb-5 rounded-xl border border-gold/40 bg-blush/25 px-4 py-3 text-[0.82rem] leading-relaxed text-burgundy/80">
+                Pick a day, a time, a place and at least one activity, then your plan is ready to save.
+                Everything you choose appears here as you go.
+              </p>
+            )}
+
             <dl className="space-y-4 text-sm">
               <SummaryRow label="Date" value={summary.date} />
               <SummaryRow label="Time" value={summary.time} />
@@ -531,12 +543,6 @@ export function PlannerScreen({
                 muted={!summary.message}
               />
             </dl>
-
-            {!pending && (
-              <p className="mt-5 rounded-xl border border-gold/40 bg-blush/25 px-4 py-3 text-[0.82rem] leading-relaxed text-burgundy/80">
-                Pick a day, a time, a place and at least one activity, then your plan is ready to save.
-              </p>
-            )}
 
             {serverError && (
               <p role="alert" className="mt-5 rounded-xl border border-[#a33a4a]/30 bg-[#fbe9ec] px-4 py-3 text-sm text-[#8f3040]">

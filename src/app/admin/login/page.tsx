@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { currentAdmin } from "@/lib/admin-auth";
+import { SESSION_COOKIE } from "@/lib/config";
 import { AdminLoginForm } from "@/components/admin/login-form";
 import { AmbientLight } from "@/components/ambience";
 import { WaxSeal } from "@/components/ornaments";
@@ -14,8 +16,15 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminLoginPage() {
-  const admin = await currentAdmin().catch(() => null);
-  if (admin) redirect("/admin");
+  // Already signed in? Go straight to the dashboard. This is checked against
+  // the session cookie only, so a database that is not reachable yet still
+  // renders the form instead of bouncing in a redirect loop.
+  const store = await cookies();
+  const hasSessionCookie = Boolean(store.get(SESSION_COOKIE)?.value);
+  if (hasSessionCookie) {
+    const admin = await currentAdmin().catch(() => null);
+    if (admin) redirect("/admin");
+  }
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center px-5 py-16">
