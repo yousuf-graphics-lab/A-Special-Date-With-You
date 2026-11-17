@@ -213,10 +213,20 @@ scripts/                         migrate.mjs, seed-admin.mjs
 ```bash
 npm run dev         # local development (embedded Postgres)
 npm run build       # production build
-npm run start       # run the production build
+npm run start       # run the production build against DATABASE_URL
 npm run typecheck   # tsc --noEmit
 npm run db:migrate  # apply supabase/migrations to DATABASE_URL
 npm run db:setup    # migrate + create/rotate the admin account
+```
+
+`npm run start` runs the production build, so it insists on a real
+`DATABASE_URL` — the embedded database is deliberately unavailable there, so a
+serverless filesystem can never silently swallow Samiya's answers. To smoke-test
+the built artefact on your own machine:
+
+```bash
+npm run build
+ALLOW_EMBEDDED_DATABASE=true npm run start   # local disk only, never on a server
 ```
 
 ---
