@@ -100,8 +100,10 @@ export function MusicToggle({ className = "" }: { className?: string }) {
   useEffect(() => {
     setReady(true);
     const stored = window.localStorage.getItem("fsd:music");
+
     if (stored === "on") {
-      // Browsers require a gesture; resume as soon as the visitor touches anything.
+      // She already chose music. Browsers still require a gesture, so resume on
+      // the first touch anywhere.
       const resume = () => {
         start();
         setEnabled(true);
@@ -110,6 +112,21 @@ export function MusicToggle({ className = "" }: { className?: string }) {
       window.addEventListener("pointerdown", resume, { once: true });
       return () => window.removeEventListener("pointerdown", resume);
     }
+
+    if (stored === null) {
+      // Never decided before: begin on her very first interaction, which is the
+      // earliest moment the browser allows audio. No autoplay before that.
+      const begin = () => {
+        start();
+        setEnabled(true);
+        window.localStorage.setItem("fsd:music", "on");
+        window.removeEventListener("pointerdown", begin);
+      };
+      window.addEventListener("pointerdown", begin, { once: true });
+      return () => window.removeEventListener("pointerdown", begin);
+    }
+
+    // stored === "off": she switched it off on purpose. Stay quiet.
     return undefined;
   }, [start]);
 

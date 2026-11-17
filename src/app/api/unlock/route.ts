@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { readVisitor, ensureVisitor, markUnlocked, recordEvent } from "@/lib/visitor";
 import { birthdayLockSecret, birthdayLockConfigured } from "@/lib/config";
 import { countRecent, requestIp } from "@/lib/rate-limit";
-import { unlockSchema } from "@/lib/validation";
+import { digitsOnly, unlockSchema } from "@/lib/validation";
 import { databaseConfigured, queryOne, DatabaseNotConfiguredError } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -62,6 +62,26 @@ async function handleUnlock(request: Request) {
     ["15", ip],
   );
 
+  // Check the answer BEFORE the throttle. A correct password must always open
+  // the door: six earlier typos (or a few test refreshes) must never be able to
+  // lock out the one right answer. Only wrong attempts count against her.
+  const normalise = digitsOnly;
+  const supplied = normalise(parsed.data.password);
+  const secret = birthdayLockSecret();
+
+  if (secret && supplied.length > 0 && secureCompare(supplied, normalise(secret))) {
+    await markUnlocked(visitor.id);
+    const opened = await queryOne<{ unlocked_at: string | null; visits: number }>(
+      "select unlocked_at, visits from visitors where id = $1",
+      [visitor.id],
+    );
+    return NextResponse.json(
+      { ok: true, visits: opened?.visits ?? 1, unlockedAt: opened?.unlocked_at ?? null },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  // Wrong answer from here on: only now does the throttle apply.
   if (visitorFailures >= 6 || ipFailures >= 25) {
     return NextResponse.json(
       {
@@ -73,26 +93,10 @@ async function handleUnlock(request: Request) {
     );
   }
 
-  // Normalise: digits only, so "14 11 2007" or "14-11-2007" also feel natural.
-  const normalise = (value: string) => value.replace(/[^0-9]/g, "");
-  const supplied = normalise(parsed.data.password);
-  const secret = birthdayLockSecret();
-  if (!secret || !secureCompare(supplied, normalise(secret))) {
-    await recordEvent(visitor.id, "unlock_failed", { ip });
-    return NextResponse.json(
-      { ok: false, error: "Oops, my love! Try once more." },
-      { status: 401 },
-    );
-  }
-
-  await markUnlocked(visitor.id);
-  const updated = await queryOne<{ unlocked_at: string | null; visits: number }>(
-    "select unlocked_at, visits from visitors where id = $1",
-    [visitor.id],
-  );
-
+  // Everything below is a wrong answer.
+  await recordEvent(visitor.id, "unlock_failed", { ip });
   return NextResponse.json(
-    { ok: true, visits: updated?.visits ?? 1, unlockedAt: updated?.unlocked_at ?? null },
-    { headers: { "Cache-Control": "no-store" } },
+    { ok: false, error: "Oops, my love! Try once more." },
+    { status: 401 },
   );
 }
