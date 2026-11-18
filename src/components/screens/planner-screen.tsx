@@ -60,17 +60,30 @@ const ICONS: Record<string, LucideIcon> = {
   heart: Heart,
 };
 
+/**
+ * Entrance props for one planner section.
+ *
+ * These are returned as explicit `initial`/`animate`/`transition` props rather
+ * than as variants for the parent to propagate. Variant inheritance breaks
+ * down for a section that contains a nested <AnimatePresence>: when that inner
+ * child mounts later it inherits the parent's *initial* variant ("hidden",
+ * i.e. opacity 0) and never reaches "show", so the section silently disappears
+ * the moment she reveals its optional field — which is exactly what happened
+ * to step 03 ("Somewhere Else") and step 04 ("Something Else"). Animating each
+ * section on its own removes that coupling entirely.
+ */
 const sectionMotion = (reduced: boolean, index: number) =>
   reduced
-    ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
-    : {
-        hidden: { opacity: 0, y: 22 },
-        show: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.7, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] as const },
+    ? ({ initial: { opacity: 1 }, animate: { opacity: 1 } } as const)
+    : ({
+        initial: { opacity: 0, y: 22 },
+        animate: { opacity: 1, y: 0 },
+        transition: {
+          duration: 0.7,
+          delay: index * 0.05,
+          ease: [0.22, 1, 0.36, 1] as const,
         },
-      };
+      } as const);
 
 export function PlannerScreen({
   value,
@@ -260,13 +273,10 @@ export function PlannerScreen({
         </button>
       </div>
 
-      <motion.div
-        initial="hidden"
-        animate="show"
-        className="mt-10 space-y-6 sm:mt-14 sm:space-y-8"
-      >
+      {/* Plain wrapper on purpose: no variant propagation. See sectionMotion. */}
+      <div className="mt-10 space-y-6 sm:mt-14 sm:space-y-8">
         {/* ---------------------------------------------------------- DATE */}
-        <motion.div variants={sectionMotion(!!reduced, 0)}>
+        <motion.div {...sectionMotion(!!reduced, 0)}>
           <SectionHeading
             icon={CalendarDays}
             step="01"
@@ -288,7 +298,7 @@ export function PlannerScreen({
         </motion.div>
 
         {/* ---------------------------------------------------------- TIME */}
-        <motion.div variants={sectionMotion(!!reduced, 1)}>
+        <motion.div {...sectionMotion(!!reduced, 1)}>
           <SectionHeading
             icon={Clock}
             step="02"
@@ -365,7 +375,7 @@ export function PlannerScreen({
         </motion.div>
 
         {/* --------------------------------------------------------- PLACE */}
-        <motion.div variants={sectionMotion(!!reduced, 2)}>
+        <motion.div {...sectionMotion(!!reduced, 2)}>
           <SectionHeading
             icon={MapPin}
             step="03"
@@ -443,7 +453,7 @@ export function PlannerScreen({
         </motion.div>
 
         {/* ------------------------------------------------------ ACTIVITY */}
-        <motion.div variants={sectionMotion(!!reduced, 3)}>
+        <motion.div {...sectionMotion(!!reduced, 3)}>
           <SectionHeading
             icon={Heart}
             step="04"
@@ -524,7 +534,7 @@ export function PlannerScreen({
         </motion.div>
 
         {/* ------------------------------------------------------- MESSAGE */}
-        <motion.div variants={sectionMotion(!!reduced, 4)}>
+        <motion.div {...sectionMotion(!!reduced, 4)}>
           <SectionHeading
             icon={MessageSquareHeart}
             step="05"
@@ -552,7 +562,7 @@ export function PlannerScreen({
         </motion.div>
 
         {/* -------------------------------------------------------- REVIEW */}
-        <motion.div variants={sectionMotion(!!reduced, 5)}>
+        <motion.div {...sectionMotion(!!reduced, 5)}>
           <SectionHeading
             icon={Sparkles}
             step="06"
@@ -638,7 +648,7 @@ export function PlannerScreen({
             </div>
           </div>
         </motion.div>
-      </motion.div>
+      </div>
 
       {/* ------------------------------------------------ CONFIRM DIALOG */}
       <AnimatePresence>
