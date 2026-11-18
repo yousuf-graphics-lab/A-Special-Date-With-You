@@ -75,13 +75,23 @@ export function FinaleScreen({
   const reduced = useReducedMotion();
   const view = buildView(plan, form);
 
+  /**
+   * This used to be `whileInView`, which made the whole screen depend on an
+   * IntersectionObserver firing. If it never does — and the page wrapper's
+   * `overflow-hidden` is enough to make it unreliable — every element stays at
+   * `opacity: 0` forever: the finale "never opens" while the DOM is all there.
+   * This screen had no `animate` fallback at all, unlike every other screen,
+   * which is why only this one went blank.
+   *
+   * `animate` runs on mount and always completes. The finale is entered by a
+   * deliberate action, so there is nothing to gain from waiting for a scroll.
+   */
   const appear = (delay: number) =>
     reduced
       ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
       : {
           initial: { opacity: 0, y: 18 },
-          whileInView: { opacity: 1, y: 0 },
-          viewport: { once: true, amount: 0.25 },
+          animate: { opacity: 1, y: 0 },
           transition: { duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] as const },
         };
 
