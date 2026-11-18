@@ -98,7 +98,7 @@ export function LetterScreen({ onContinue }: { onContinue: () => void }) {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: reduced ? 0 : 2.4, duration: 0.9 }}
+        transition={{ delay: reduced ? 0 : 1.2, duration: 0.9 }}
         className="mt-14 flex flex-col items-center gap-3 text-center"
       >
         <button type="button" onClick={onContinue} className="btn-primary">

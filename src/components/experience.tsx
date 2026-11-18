@@ -143,7 +143,7 @@ export default function Experience({
       <AmbientLight variant={stage === "bouquet" || stage === "finale" ? "dawn" : "warm"} />
       <FloatingPetals count={stage === "lock" ? 9 : 14} />
 
-      <main id="main" className="relative z-10">
+      <main id="main" className="relative z-10 pb-24">
         <div ref={headingRef}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -208,9 +208,9 @@ export default function Experience({
       {unlocked && (
         <nav
           aria-label="Story progress"
-          className="fixed inset-x-0 bottom-0 z-30 flex justify-center pb-[max(0.9rem,env(safe-area-inset-bottom))]"
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center pb-[max(0.9rem,env(safe-area-inset-bottom))]"
         >
-          <ol className="flex items-center gap-2 rounded-full border border-gold/25 bg-cream/70 px-3.5 py-2 shadow-[0_10px_30px_-24px_rgba(88,34,47,0.6)] backdrop-blur-sm">
+          <ol className="pointer-events-auto flex items-center gap-2 rounded-full border border-gold/25 bg-cream/70 px-3.5 py-2 shadow-[0_10px_30px_-24px_rgba(88,34,47,0.6)] backdrop-blur-sm">
             {ORDER.slice(1).map((item, index) => {
               const position = index + 1;
               const reachable = position <= furthest;
@@ -244,7 +244,7 @@ export default function Experience({
         </nav>
       )}
 
-      <div className="fixed bottom-5 left-5 z-40 hidden sm:block">
+      <div className="pointer-events-none fixed bottom-5 left-5 z-40 hidden sm:block">
         <p className="font-script text-xl text-burgundy/55">Samee &amp; Yousuf</p>
       </div>
 

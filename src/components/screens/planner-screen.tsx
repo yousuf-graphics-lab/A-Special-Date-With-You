@@ -169,9 +169,23 @@ export function PlannerScreen({
       };
 
       if (!response.ok || !data.ok || !data.plan) {
-        setErrors(data.fieldErrors ?? {});
+        const fieldErrors = data.fieldErrors ?? {};
+        setErrors(fieldErrors);
         setServerError(data.error ?? "That didn't save. Please give it one more try.");
-        setReviewing(false);
+        // Keep the confirmation open so she can see the message, and take her
+        // straight to the field that needs her. Previously the dialog closed
+        // and the error stayed hidden far down the page — which read as "the
+        // button does nothing".
+        const firstBad = Object.keys(fieldErrors)[0];
+        if (firstBad) {
+          window.requestAnimationFrame(() => {
+            document.getElementById(`field-${firstBad}`)?.scrollIntoView({
+              behavior: reduced ? "auto" : "smooth",
+              block: "center",
+            });
+          });
+          window.setTimeout(() => setReviewing(false), reduced ? 0 : 1400);
+        }
         return;
       }
 
@@ -252,6 +266,7 @@ export function PlannerScreen({
               {formatDhakaDate(value.date)}
             </p>
           )}
+          <span id="field-selectedDate" />
           {errors.selectedDate && <FieldError>{errors.selectedDate}</FieldError>}
         </motion.div>
 
@@ -326,7 +341,9 @@ export function PlannerScreen({
               </motion.div>
             )}
           </AnimatePresence>
+          <span id="field-timeSlot" />
           {errors.timeSlot && <FieldError>{errors.timeSlot}</FieldError>}
+          <span id="field-customTime" />
           {errors.customTime && <FieldError>{errors.customTime}</FieldError>}
         </motion.div>
 
@@ -398,11 +415,13 @@ export function PlannerScreen({
                     placeholder={PLANNER.customPlacePlaceholder}
                     className={`field ${errors.placeCustom ? "field-error" : ""}`}
                   />
+                  <span id="field-placeCustom" />
                   {errors.placeCustom && <FieldError>{errors.placeCustom}</FieldError>}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+          <span id="field-placeId" />
           {errors.placeId && <FieldError>{errors.placeId}</FieldError>}
         </motion.div>
 
@@ -477,11 +496,13 @@ export function PlannerScreen({
                     onChange={(event) => update("activityCustom", event.target.value.slice(0, 160))}
                     className={`field ${errors.activityCustom ? "field-error" : ""}`}
                   />
-                  {errors.activityCustom && <FieldError>{errors.activityCustom}</FieldError>}
+                  <span id="field-activityCustom" />
+                    {errors.activityCustom && <FieldError>{errors.activityCustom}</FieldError>}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+          <span id="field-activities" />
           {errors.activities && <FieldError>{errors.activities}</FieldError>}
         </motion.div>
 
@@ -509,6 +530,7 @@ export function PlannerScreen({
           <p className="mt-1.5 text-right text-[0.68rem] text-muted/70">
             {value.message.length}/1200
           </p>
+          <span id="field-message" />
           {errors.message && <FieldError>{errors.message}</FieldError>}
         </motion.div>
 
