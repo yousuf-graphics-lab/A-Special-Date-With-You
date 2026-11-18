@@ -7,6 +7,7 @@ import { LockIllustration, type LockState } from "@/components/lock-illustration
 import { BlossomRule, Sprig } from "@/components/ornaments";
 import { playUnlockChime } from "@/components/music";
 import { LOCK } from "@/lib/content";
+import { toLatinDigits } from "@/lib/validation";
 
 export function LockScreen({
   alreadyUnlocked,
@@ -133,7 +134,9 @@ export function LockScreen({
               disabled={unlocked || state === "checking"}
               value={value}
               onChange={(event) => {
-                setValue(event.target.value.replace(/[^0-9\s/-]/g, "").slice(0, 20));
+                // Bengali / Arabic-Indic / fullwidth digits are converted to
+                // Latin instead of being deleted, so a Bangla keyboard works.
+                setValue(toLatinDigits(event.target.value).replace(/[^0-9\s/-]/g, "").slice(0, 20));
                 if (error) setError(null);
                 if (state === "error") setState("idle");
               }}

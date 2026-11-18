@@ -133,6 +133,13 @@ export function PlannerScreen({
     value.activities.length > 0;
 
   async function save() {
+    // The button is disabled until everything needed is chosen, but guard here
+    // as well so a stray submit can never reach the API half-finished.
+    if (!pending) {
+      setServerError("A couple of little things still need your attention.");
+      return;
+    }
+
     setSaving(true);
     setServerError(null);
     setErrors({});
@@ -554,8 +561,9 @@ export function PlannerScreen({
               <button
                 type="button"
                 onClick={() => setReviewing(true)}
-                disabled={saving}
-                className="btn-primary w-full sm:w-auto"
+                disabled={saving || !pending}
+                aria-describedby={!pending ? "plan-missing" : undefined}
+                className="btn-primary w-full disabled:pointer-events-none disabled:opacity-45 sm:w-auto"
               >
                 {saving ? (
                   <>
@@ -569,9 +577,25 @@ export function PlannerScreen({
                   </>
                 )}
               </button>
-              <p className="text-center text-[0.72rem] text-muted/75 sm:text-left">
-                Nothing is public. Only I will see this, my love.
-              </p>
+              {!pending ? (
+                <p
+                  id="plan-missing"
+                  role="status"
+                  className="text-center text-[0.72rem] leading-relaxed text-burgundy/75 sm:text-left"
+                >
+                  {!value.date
+                    ? "Pick a day first, my love."
+                    : !chosenTime
+                      ? "Choose a time for us."
+                      : !value.placeId
+                        ? "Tell me where we are going."
+                        : "Pick at least one thing we will do."}
+                </p>
+              ) : (
+                <p className="text-center text-[0.72rem] text-muted/75 sm:text-left">
+                  Nothing is public. Only I will see this, my love.
+                </p>
+              )}
             </div>
           </div>
         </motion.div>
