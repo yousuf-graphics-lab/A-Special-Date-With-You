@@ -149,8 +149,13 @@ export default function Experience({
 
   const unlocked = furthest >= 1;
 
+  // Only the horizontal axis is clipped. `overflow-hidden` here also made the
+  // element a scroll container, which broke any IntersectionObserver-based
+  // animation further down the tree — the finale's `whileInView` never fired
+  // and its text stayed invisible. Vertical overflow must stay visible so the
+  // window remains the scrolling box.
   return (
-    <div className="relative min-h-dvh overflow-hidden">
+    <div className="relative min-h-dvh overflow-x-hidden">
       <AmbientLight variant={stage === "bouquet" || stage === "finale" ? "dawn" : "warm"} />
       <FloatingPetals count={stage === "lock" ? 9 : 14} />
 

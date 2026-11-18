@@ -223,7 +223,7 @@ export function BouquetScreen({ onContinue }: { onContinue: () => void }) {
         <motion.div
           initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={timing(1.75)}
+          transition={timing(0.95)}
           className="mt-9 flex justify-center"
         >
           <button type="button" onClick={onContinue} className="btn-primary">
