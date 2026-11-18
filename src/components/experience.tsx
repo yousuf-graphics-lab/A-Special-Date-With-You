@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { AmbientLight, FloatingPetals } from "@/components/ambience";
 import { MusicToggle } from "@/components/music";
 import { LockScreen } from "@/components/screens/lock-screen";
@@ -145,14 +145,23 @@ export default function Experience({
 
       <main id="main" className="relative z-10 pb-24">
         <div ref={headingRef}>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={stage}
-              initial={reduced ? { opacity: 1 } : { opacity: 0, y: 16, filter: "blur(6px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={reduced ? { opacity: 1 } : { opacity: 0, y: -12, filter: "blur(6px)" }}
-              transition={{ duration: reduced ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-            >
+          {/*
+           * Deliberately NOT using <AnimatePresence mode="wait"> here.
+           *
+           * That mode holds the incoming screen back until the outgoing one has
+           * finished animating. The exit animation ran through `filter: blur`,
+           * which is expensive on phones, and if it stalled the old screen had
+           * already faded out while the new one was never mounted at all: a
+           * blank page, and the next screen "never arriving". Keying the wrapper
+           * lets React swap immediately, and every screen already animates its
+           * own contents, so nothing is lost but the fragile dependency.
+           */}
+          <motion.div
+            key={stage}
+            initial={false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduced ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
               {stage === "lock" && (
                 <LockScreen
                   alreadyUnlocked={initialUnlocked}
@@ -200,8 +209,7 @@ export default function Experience({
                   onEdit={() => go("planner")}
                 />
               )}
-            </motion.div>
-          </AnimatePresence>
+          </motion.div>
         </div>
       </main>
 

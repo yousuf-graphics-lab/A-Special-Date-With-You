@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { currentAdmin } from "@/lib/admin-auth";
 import { SignOutButton } from "@/components/admin/sign-out-button";
+import { StorageBadge } from "@/components/admin/storage-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <StorageBadge />
             <span className="hidden text-xs text-muted sm:inline">
               Signed in as <span className="text-burgundy">{admin.username}</span>
             </span>

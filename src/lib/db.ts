@@ -39,6 +39,14 @@ export const isProduction = () => process.env.NODE_ENV === "production";
  * ephemeral, so quietly falling back to an embedded database would lose
  * Samiya's answers. Without DATABASE_URL we surface a clear message instead.
  */
+/**
+ * True when a database *should* be reachable.
+ *
+ * This is deliberately a cheap env check, not a ping: it runs in the render
+ * path of the homepage and a failed ping there would cost the visitor seconds.
+ * Callers must therefore treat `true` as "configured", never "connected" — for
+ * real reachability use `/api/health`, which does issue a query.
+ */
 export function databaseConfigured(): boolean {
   if (process.env.DATABASE_URL) return true;
   if (!isProduction()) return true;
@@ -151,24 +159,63 @@ function makePool(connectionString: string, timeoutMs?: number): Pool {
   return pool;
 }
 
+/**
+ * Connect to the first reachable host.
+ *
+ * The candidates are attempts to reach the *same* database under different
+ * Supabase host spellings, so there is no point paying their timeouts one after
+ * another: a stale hostname used to cost 8s per candidate, and four candidates
+ * meant a 32s stall before the page even started rendering — long enough for
+ * the visitor to see a blank screen. They are now raced with a shorter budget,
+ * so the worst case stays under a few seconds and the common case (the
+ * configured host is right) is unchanged.
+ */
 async function connectWithFallback(): Promise<Pool> {
   const candidates = connectionCandidates();
   if (candidates.length === 0) throw new Error("DATABASE_URL is empty");
 
-  let lastError: unknown;
-  for (const [index, candidate] of candidates.entries()) {
-    const pool = makePool(candidate, 8_000);
-    try {
-      await pool.query("select 1");
-      const label = new URL(candidate).hostname;
-      console.log(`[db] connected via ${label}${index > 0 ? " (fallback host)" : ""}`);
-      return pool;
-    } catch (error) {
-      lastError = error;
-      await pool.end().catch(() => {});
-    }
+  const CONNECT_TIMEOUT_MS = 4_000;
+
+  let winner: Pool | null = null;
+  const opened: Pool[] = [];
+
+  const attempt = (candidate: string, index: number) =>
+    new Promise<Pool>((resolve, reject) => {
+      const pool = makePool(candidate, CONNECT_TIMEOUT_MS);
+      opened.push(pool);
+      pool.query("select 1").then(
+        () => {
+          if (winner) {
+            // Another candidate already answered; this connection is surplus.
+            void pool.end().catch(() => {});
+            return;
+          }
+          winner = pool;
+          const label = new URL(candidate).hostname;
+          console.log(`[db] connected via ${label}${index > 0 ? " (fallback host)" : ""}`);
+          resolve(pool);
+        },
+        (error: unknown) => {
+          void pool.end().catch(() => {});
+          reject(error);
+        },
+      );
+    });
+
+  try {
+    // First success wins; whichever host answers soonest is the right one.
+    const pool = await Promise.any(
+      candidates.map((candidate, index) => attempt(candidate, index)),
+    );
+    return pool;
+  } catch (error) {
+    // Promise.any wraps failures in an AggregateError; surface the real message.
+    const inner =
+      error instanceof AggregateError && error.errors.length > 0
+        ? error.errors[error.errors.length - 1]
+        : error;
+    throw inner instanceof Error ? inner : new Error("Unable to reach the database");
   }
-  throw lastError instanceof Error ? lastError : new Error("Unable to reach the database");
 }
 
 async function createPostgresBackend(): Promise<Backend> {
