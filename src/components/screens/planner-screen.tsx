@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays,
@@ -90,6 +90,19 @@ export function PlannerScreen({
   const [reviewing, setReviewing] = useState(false);
   const [saved, setSaved] = useState<PlanView | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
+
+  /**
+   * The hand-off to the next screen is delayed so the tick can be seen. That
+   * timer must die with the component: previously it did not, so leaving the
+   * planner within the delay still fired `onSaved` afterwards and yanked her
+   * forward to the bouquet from wherever she had just gone.
+   */
+  const handOff = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (handOff.current !== null) window.clearTimeout(handOff.current);
+    };
+  }, []);
 
   const update = <K extends keyof PlanFormState>(key: K, next: PlanFormState[K]) => {
     onChange({ ...value, [key]: next });
@@ -192,7 +205,11 @@ export function PlannerScreen({
       setSaved(data.plan);
       setSavedNote(data.message ?? null);
       setReviewing(false);
-      window.setTimeout(() => onSaved(data.plan!), reduced ? 200 : 1400);
+      const plan = data.plan;
+      handOff.current = window.setTimeout(
+        () => onSaved(plan),
+        reduced ? 200 : 1400,
+      );
     } catch {
       setServerError("I could not reach the server. Check your connection and try again.");
     } finally {

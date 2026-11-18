@@ -80,16 +80,27 @@ export default function Experience({
         const response = await fetch("/api/session", { method: "POST" });
         if (!response.ok) return;
         const data = (await response.json()) as {
-          stage?: "lock" | "letter" | "planner" | "finale";
+          stage?: Stage;
           plan?: PlanView | null;
         };
         if (cancelled || !data.stage) return;
+        // A saved plan is the source of truth, and it also refills the form so
+        // the finale card survives a refresh even when the database read has
+        // since failed. Resuming at the finale with neither plan nor form is
+        // what left the card empty.
         if (data.plan) {
           setPlan(data.plan);
           setForm(planToForm(data.plan));
         }
-        if (!first) return;
-        const target = data.stage as Stage;
+        // Always allow the resume itself; only the stage jump is first-visit
+        // only, so returning to a half-finished story does not replay the
+        // entrance animation from the lock screen.
+        if (!first && data.stage !== "lock") {
+          const position = ORDER.indexOf(data.stage);
+          setFurthest((current) => Math.max(current, position));
+          return;
+        }
+        const target = data.stage;
         const position = ORDER.indexOf(target);
         setFurthest((current) => Math.max(current, position));
         if (target !== "lock") {

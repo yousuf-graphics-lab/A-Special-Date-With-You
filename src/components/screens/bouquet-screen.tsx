@@ -196,7 +196,7 @@ export function BouquetScreen({ onContinue }: { onContinue: () => void }) {
         <motion.h2
           initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={timing(2.1)}
+          transition={timing(1.3)}
           className="mt-6 text-center font-display text-[1.85rem] leading-tight tracking-tight text-burgundy sm:text-[2.5rem]"
         >
           {BOUQUET.heading}
@@ -208,7 +208,7 @@ export function BouquetScreen({ onContinue }: { onContinue: () => void }) {
               key={index}
               initial={reduced ? { opacity: 0 } : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={timing(2.35 + index * 0.25)}
+              transition={timing(1.45 + index * 0.2)}
               className={
                 index === 0
                   ? "font-serif text-[1.04rem] italic leading-relaxed text-burgundy/85 sm:text-[1.14rem]"
@@ -223,7 +223,7 @@ export function BouquetScreen({ onContinue }: { onContinue: () => void }) {
         <motion.div
           initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={timing(2.95)}
+          transition={timing(1.75)}
           className="mt-9 flex justify-center"
         >
           <button type="button" onClick={onContinue} className="btn-primary">

@@ -15,6 +15,13 @@ export type Visitor = {
   accepted_at: string | null;
   thinking_at: string | null;
   submitted_at: string | null;
+  /**
+   * These two exist in the schema and in MILESTONES below, but were missing
+   * from the type — which is how the bouquet step quietly fell out of the
+   * resume ladder and got skipped on every later visit.
+   */
+  bouquet_opened_at: string | null;
+  final_opened_at: string | null;
 };
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 180;
